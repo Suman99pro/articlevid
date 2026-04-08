@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ArticleVid — AI Video Script Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #080b12;
+      --surface: #0f1420;
+      --surface2: #161d2e;
+      --border: #1e2a42;
+      --accent: #3d7fff;
+      --accent2: #7c3dff;
+      --gold: #f5c542;
+      --text: #e8edf5;
+      --text-muted: #6b7a99;
+      --text-dim: #3a4560;
+      --success: #22d3a0;
+      --error: #ff4d6d;
+      --glow: rgba(61, 127, 255, 0.15);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(61,127,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(61,127,255,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      top: -30vh;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80vw;
+      height: 60vh;
+      background: radial-gradient(ellipse, rgba(61,127,255,0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ---- Header ---- */
+    header {
+      padding: 40px 0 20px;
+      text-align: center;
+    }
+
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .logo-badge .dot {
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 17px;
+      color: var(--text-muted);
+      max-width: 520px;
+      margin: 0 auto 48px;
+      line-height: 1.6;
+      font-weight: 300;
+    }
+
+    /* ---- Card ---- */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    /* ---- URL Input ---- */
+    .url-input-wrapper {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .url-input-wrapper .icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      font-size: 18px;
+    }
+
+    input[type="url"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 16px 16px 48px;
+      font-size: 15px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    input[type="url"]::placeholder { color: var(--text-dim); }
+
+    input[type="url"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--glow);
+    }
+
+    /* ---- Options Row ---- */
+    .options-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .option-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    select, input[type="range"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: border-color 0.2s;
+    }
+
+    select:focus { border-color: var(--accent); }
+
+    .range-wrapper {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+
+    input[type="range"] {
+      background: transparent;
+      border: none;
+      padding: 0;
+      -webkit-appearance: auto;
+      accent-color: var(--accent);
+    }
+
+    .range-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+    }
+
+    .range-label span {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .range-label .value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    /* ---- Generate Button ---- */
+    .btn-generate {
+      width: 100%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 12px;
+      padding: 18px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: 'Syne', sans-serif;
+      color: white;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+      letter-spacing: 0.02em;
+      box-shadow: 0 4px 24px rgba(61,127,255,0.3);
+    }
+
+    .btn-generate:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 32px rgba(61,127,255,0.4);
+    }
+
+    .btn-generate:active:not(:disabled) { transform: translateY(0); }
+
+    .btn-generate:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ---- Loader ---- */
+    .loader {
+      display: none;
+      text-align: center;
+      padding: 48px 0;
+    }
+
+    .loader.active { display: block; }
+
+    .loader-ring {
+      width: 56px; height: 56px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-text {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .loader-step {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-top: 8px;
+    }
+
+    /* ---- Error ---- */
+    .error-box {
+      display: none;
+      background: rgba(255,77,109,0.08);
+      border: 1px solid rgba(255,77,109,0.25);
+      border-radius: 12px;
+      padding: 16px 20px;
+      color: var(--error);
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    .error-box.active { display: block; }
+
+    /* ---- Results ---- */
+    #results { display: none; }
+    #results.active { display: block; }
+
+    .result-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .result-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+
+    .badge-blue { background: rgba(61,127,255,0.12); color: var(--accent); border: 1px solid rgba(61,127,255,0.2); }
+    .badge-purple { background: rgba(124,61,255,0.12); color: #a87fff; border: 1px solid rgba(124,61,255,0.2); }
+    .badge-gold { background: rgba(245,197,66,0.1); color: var(--gold); border: 1px solid rgba(245,197,66,0.2); }
+
+    .result-summary {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 20px;
+      font-style: italic;
+    }
+
+    .keywords {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+
+    .keyword {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ---- Narration ---- */
+    .narration-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 28px;
+    }
+
+    .narration-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .narration-text {
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--text);
+      font-weight: 300;
+    }
+
+    /* ---- Scenes ---- */
+    .scenes-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    .scene {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .scene:hover { border-color: rgba(61,127,255,0.3); }
+
+    .scene-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .scene-num {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: 'Syne', sans-serif;
+      flex-shrink: 0;
+    }
+
+    .scene-title-text {
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .scene-time {
+      font-size: 12px;
+      color: var(--text-dim);
+      font-family: monospace;
+    }
+
+    .scene-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 600px) {
+      .scene-grid { grid-template-columns: 1fr; }
+      .options-row { grid-template-columns: 1fr; }
+    }
+
+    .scene-field label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .scene-field p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .scene-field.full { grid-column: 1 / -1; }
+
+    .broll-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .broll-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .mood-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 500;
+      background: rgba(124,61,255,0.1);
+      color: #a87fff;
+      border: 1px solid rgba(124,61,255,0.2);
+      text-transform: capitalize;
+    }
+
+    /* ---- Export Buttons ---- */
+    .export-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+
+    .btn-export {
+      flex: 1;
+      min-width: 140px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-export:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--glow);
+    }
+
+    /* ---- Footer ---- */
+    footer {
+      text-align: center;
+      padding: 48px 0 32px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    footer a { color: var(--text-muted); text-decoration: none; }
+    footer a:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo-badge">
+      <span class="dot"></span>
+      Powered by Google Gemini
+    </div>
+    <h1>Turn Any Article Into<br>a <span>Video Script</span></h1>
+    <p class="subtitle">
+      Paste an article URL and get a fully produced video script with scenes,
+      narration, b-roll suggestions, and text overlays — powered by Gemini AI.
+    </p>
+  </header>
+
+  <!-- Input Card -->
+  <div class="card">
+    <div class="card-title">⬡ Article Source</div>
+
+    <div class="url-input-wrapper">
+      <span class="icon">🔗</span>
+      <input type="url" id="articleUrl" placeholder="https://example.com/article..." />
+    </div>
+
+    <div class="options-row">
+      <div class="option-group">
+        <label>Video Style</label>
+        <select id="videoStyle">
+          <option value="documentary">🎬 Documentary</option>
+          <option value="explainer">💡 Explainer</option>
+          <option value="social_media">📱 Social Media</option>
+        </select>
+      </div>
+      <div class="option-group">
+        <label>Duration</label>
+        <div class="range-wrapper">
+          <input type="range" id="duration" min="30" max="180" step="15" value="60" />
+          <div class="range-label">
+            <span>30s</span>
+            <span class="value" id="durationLabel">60 seconds</span>
+            <span>3min</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+
+    <button class="btn-generate" id="generateBtn" onclick="generate()">
+      ✦ Generate Video Script
+    </button>
+  </div>
+
+  <!-- Loader -->
+  <div class="loader" id="loader">
+    <div class="loader-ring"></div>
+    <div class="loader-text">Analyzing article & crafting script...</div>
+    <div class="loader-step" id="loaderStep">Fetching article content</div>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+    <div class="card">
+      <div class="result-header">
+        <div class="result-title" id="scriptTitle"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="badge badge-blue" id="styleBadge"></span>
+          <span class="badge badge-gold" id="durationBadge"></span>
+        </div>
+      </div>
+      <p class="result-summary" id="scriptSummary"></p>
+      <div class="keywords" id="keywords"></div>
+
+      <div class="narration-box">
+        <div class="narration-label">🎙 Full Narration Script</div>
+        <p class="narration-text" id="narrationText"></p>
+      </div>
+
+      <div class="scenes-title">🎬 Scene Breakdown</div>
+      <div id="scenes"></div>
+
+      <div class="export-row">
+        <button class="btn-export" onclick="exportJSON()">📄 Export JSON</button>
+        <button class="btn-export" onclick="exportMarkdown()">📝 Export Markdown</button>
+        <button class="btn-export" onclick="copyNarration()">📋 Copy Narration</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    ArticleVid &mdash; Built with <a href="https://ai.google.dev/" target="_blank">Google Gemini</a> &amp; FastAPI &bull;
+    <a href="https://github.com" target="_blank">View on GitHub</a>
+  </footer>
+</div>
+
+<script>
+  const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8000'
+    : '/api';
+
+  let lastResult = null;
+
+  // Duration slider
+  const durSlider = document.getElementById('duration');
+  const durLabel = document.getElementById('durationLabel');
+  durSlider.addEventListener('input', () => {
+    const v = durSlider.value;
+    durLabel.textContent = v >= 60 ? `${v/60}min ${v%60 > 0 ? v%60+'s' : ''}`.trim() : `${v} seconds`;
+  });
+
+  const steps = [
+    "Fetching article content...",
+    "Parsing article structure...",
+    "Sending to Gemini AI...",
+    "Generating scenes & narration...",
+    "Finalizing script..."
+  ];
+
+  async function generate() {
+    const url = document.getElementById('articleUrl').value.trim();
+    const style = document.getElementById('videoStyle').value;
+    const duration = parseInt(durSlider.value);
+    const errorBox = document.getElementById('errorBox');
+    const loader = document.getElementById('loader');
+    const results = document.getElementById('results');
+    const btn = document.getElementById('generateBtn');
+
+    errorBox.className = 'error-box';
+    results.className = '';
+
+    if (!url) {
+      errorBox.textContent = 'Please enter an article URL.';
+      errorBox.className = 'error-box active';
+      return;
+    }
+
+    try { new URL(url); } catch {
+      errorBox.textContent = 'Please enter a valid URL including https://';
+      errorBox.className = 'error-box active';
+      return;
+    }
+
+    btn.disabled = true;
+    loader.className = 'loader active';
+
+    let stepIdx = 0;
+    const stepEl = document.getElementById('loaderStep');
+    const stepInterval = setInterval(() => {
+      stepEl.textContent = steps[stepIdx % steps.length];
+      stepIdx++;
+    }, 1800);
+
+    try {
+      const resp = await fetch(`${API_BASE}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, style, duration })
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.detail || 'Server error');
+      }
+
+      const data = await resp.json();
+      lastResult = data;
+      renderResults(data);
+
+    } catch (err) {
+      errorBox.textContent = `Error: ${err.message}`;
+      errorBox.className = 'error-box active';
+    } finally {
+      clearInterval(stepInterval);
+      loader.className = 'loader';
+      btn.disabled = false;
+    }
+  }
+
+  function renderResults(data) {
+    const s = data.script;
+    document.getElementById('scriptTitle').textContent = s.title;
+    document.getElementById('scriptSummary').textContent = s.summary;
+    document.getElementById('narrationText').textContent = s.narration;
+
+    const styleNames = { documentary: '🎬 Documentary', explainer: '💡 Explainer', social_media: '📱 Social Media' };
+    document.getElementById('styleBadge').textContent = styleNames[s.style] || s.style;
+    document.getElementById('durationBadge').textContent = `⏱ ~${s.estimated_duration}s`;
+
+    const kwEl = document.getElementById('keywords');
+    kwEl.innerHTML = (s.keywords || []).map(k => `<span class="keyword">${k}</span>`).join('');
+
+    const scenesEl = document.getElementById('scenes');
+    scenesEl.innerHTML = (s.scenes || []).map(scene => `
+      <div class="scene">
+        <div class="scene-header">
+          <div class="scene-num">${scene.scene_number}</div>
+          <div class="scene-title-text">${scene.title}</div>
+          <span class="scene-time">${scene.timestamp_start} – ${scene.timestamp_end}</span>
+          <span class="mood-badge">${scene.mood || ''}</span>
+        </div>
+        <div class="scene-grid">
+          <div class="scene-field full">
+            <label>🎥 Visual Description</label>
+            <p>${scene.visual_description}</p>
+          </div>
+          <div class="scene-field">
+            <label>🎙 Narration</label>
+            <p>${scene.narration_excerpt}</p>
+          </div>
+          <div class="scene-field">
+            <label>📽 B-Roll Suggestions</label>
+            <div class="broll-list">
+              ${(scene.b_roll_suggestions || []).map(b => `<span class="broll-item">${b}</span>`).join('')}
+            </div>
+          </div>
+          ${scene.text_overlays && scene.text_overlays.length ? `
+          <div class="scene-field full">
+            <label>💬 Text Overlays</label>
+            <div class="broll-list">
+              ${scene.text_overlays.map(t => `<span class="broll-item">${t}</span>`).join('')}
+            </div>
+          </div>` : ''}
+        </div>
+      </div>
+    `).join('');
+
+    document.getElementById('results').className = 'active';
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function exportJSON() {
+    if (!lastResult) return;
+    const blob = new Blob([JSON.stringify(lastResult, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'video-script.json';
+    a.click();
+  }
+
+  function exportMarkdown() {
+    if (!lastResult) return;
+    const s = lastResult.script;
+    let md = `# ${s.title}\n\n> ${s.summary}\n\n**Style:** ${s.style} | **Duration:** ~${s.estimated_duration}s\n\n**Keywords:** ${(s.keywords||[]).join(', ')}\n\n---\n\n## 🎙 Full Narration\n\n${s.narration}\n\n---\n\n## 🎬 Scene Breakdown\n\n`;
+    (s.scenes||[]).forEach(sc => {
+      md += `### Scene ${sc.scene_number}: ${sc.title} (${sc.timestamp_start} – ${sc.timestamp_end})\n`;
+      md += `**Mood:** ${sc.mood}\n\n`;
+      md += `**Visual:** ${sc.visual_description}\n\n`;
+      md += `**Narration:** ${sc.narration_excerpt}\n\n`;
+      md += `**B-Roll:** ${(sc.b_roll_suggestions||[]).join(', ')}\n\n`;
+      if (sc.text_overlays?.length) md += `**Text Overlays:** ${sc.text_overlays.join(', ')}\n\n`;
+      md += `---\n\n`;
+    });
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'video-script.md';
+    a.click();
+  }
+
+  function copyNarration() {
+    if (!lastResult) return;
+    navigator.clipboard.writeText(lastResult.script.narration).then(() => {
+      const btn = document.querySelector('[onclick="copyNarration()"]');
+      const orig = btn.textContent;
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => btn.textContent = orig, 2000);
+    });
+  }
+
+  // Allow Enter key
+  document.getElementById('articleUrl').addEventListener('keydown', e => {
+    if (e.key === 'Enter') generate();
+  });
+</script>
+</body>
+</html>
