@@ -28,8 +28,8 @@ Turn any article URL into a fully produced video script using **Google Gemini AI
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/articlevid.git
-cd articlevid
+git clone https://github.com/suman99pro/notebooklm-video-app.git
+cd notebooklm-video-app
 ```
 
 ### 2. Configure your API key
